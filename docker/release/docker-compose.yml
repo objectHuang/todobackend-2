@@ -8,7 +8,7 @@ app:
   environment:
     DJANGO_SETTINGS_MODULE: todobackend.settings.release
     MYSQL_HOST: db
-    MYSQL_USER: todo
+    MYSQL_USER: root
     MYSQL_PASSWORD: password
   command:
     - uwsgi
@@ -18,10 +18,20 @@ app:
     - "--master"
     - "--die-on-term"
 
-
+test:
+  image: objecthuang/todobackend-specs
+  links:
+    - nginx
+  environment:
+    URL: http://nginx:8000/todos
+    JUNIT_REPORT_PATH: /reports/acceptance.xml
+    JUNIT_REPORT_STACK: 1
+  command: --reporter mocha-jenkins-reporter
 
 nginx:
     image: nginx
+    links:
+      - app
     volumes:
       - ./todobackend.conf:/etc/nginx/conf.d/todobackend.conf
     ports:
@@ -30,7 +40,7 @@ nginx:
       - webroot
 
 webroot:
-    build ../../
+    build: ../../
     dockerfile: docker/release/Dockerfile
     volumes:
       - /var/www/todobackend
@@ -49,5 +59,10 @@ db:
 agent:
   image: objecthuang/ansible
   volumes:
-    - ../../ansible/probe.yml:ansible/site.yml
+    - ../../ansible/probe.yml:/ansible/site.yml
+  links:
+    - db
+  environment:
+    PROBE_HOST: "db"
+    PROBE_PORT: "3306"
 
