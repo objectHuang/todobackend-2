@@ -1,7 +1,7 @@
 test:
   build: ../../
   dockerfile: docker/dev/Dockerfile
-  volumes_from: 
+  volumes_from:
     - cache
   links:
     - db
@@ -29,7 +29,6 @@ builder:
     - cache
   entrypoint: "entrypoint.sh"
   command: ["pip", "wheel", "--no-index", "-f /build", "."]
-
 
 db:
   image: mysql:5.6
