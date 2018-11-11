@@ -29,7 +29,8 @@ test:
   command: --reporter mocha-jenkins-reporter
 
 nginx:
-    image: nginx
+    build: .
+    dockerfile: Dockerfile.nginx
     links:
       - app
     volumes:
@@ -57,12 +58,11 @@ db:
       MYSQL_ROOT_PASSWORD: password
 
 agent:
-  image: objecthuang/ansible
-  volumes:
-    - ../../ansible/probe.yml:/ansible/site.yml
+  image: objecthuang/ansible  
   links:
     - db
   environment:
     PROBE_HOST: "db"
     PROBE_PORT: "3306"
+  command: ["probe.yml"]
 
