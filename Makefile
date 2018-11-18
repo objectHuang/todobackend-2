@@ -24,7 +24,9 @@ CHECK := @bash -c '\
 
 DOCKER_REGISTRY ?= docker.io
 
-.PHONY: test build release tag
+DOCKER_REGISTRY_AUTH ?= 
+
+.PHONY: test build release tag buldtag login logout publish
 
 test:
 	${INFO} "Pulling latest Images..."
@@ -77,14 +79,29 @@ clean:
 	${INFO} "Clean complete"
 
 tag:
-	$(INFO) "Tagging release image with tags $(TAG_ARGS)..."
+	${INFO} "Tagging release image with tags $(TAG_ARGS)..."
 	@ $(foreach tag,$(TAG_ARGS), docker tag $(IMAGE_ID) $(DOCKER_REGISTRY)/$(ORG_NAME)/$(REPO_NAME):$(tag);)
-	$(INFO) "Tagging complete"
+	${INFO} "Tagging complete"
 
 buildtag:
-	$(INFO) "Tagging release image with suffix $(BUILD_TAG) and build tags $(BUILDTAG_ARGS)..."
+	${INFO} "Tagging release image with suffix $(BUILD_TAG) and build tags $(BUILDTAG_ARGS)..."
 	@ $(foreach tag,$(BUILDTAG_ARGS), docker tag $(IMAGE_ID) $(DOCKER_REGISTRY)/$(ORG_NAME)/$(REPO_NAME):$(tag).$(BUILD_TAG);)
-	$(INFO) "Tagging complete"
+	${INFO} "Tagging complete"
+
+login:
+	${INFO} "Loging in to Docker registry $$DOCKER_REGISTRY..."
+	@ docker login -u $$DOCKER_USER -p $$DOCKER_PASSWORD $(DOCKER_REGISTRY)
+	${INFO} "Logged in to docker registry $$DOCKER_REGISTRY"
+
+logout:
+	${INFO} "Loging out to Docker registry $$DOCKER_REGISTRY..."
+	@ docker logout
+	${INFO} "Logged out to docker registry $$DOCKER_REGISTRY"
+
+publish:
+	${INFO} "Publishing release image $(IAMGE_ID) to $(DOCKER_REGISTRY)/$(ORG_NAME)/$(REPO_NAME)..."
+	@ $(foreach tag, $(shell echo $(REPO_EXPR)), docker push $(tag);)
+	$(INFO) "Publishing complete"
 
 YELLOW := "\e[1;33m"
 NC := "\e[0m"
@@ -98,6 +115,14 @@ INFO := @bash -c '\
 APP_CONTAINER_ID := $$(docker-compose -p $(REL_PROJECT) -f $(REL_COMPOSE_FILE) ps -q $(APP_SERVICE_NAME))
 
 IMAGE_ID := $$(docker inspect -f '{{ .Image }}' $(APP_CONTAINER_ID))
+
+ifeq ($(DOCKER_REGISTRY), docker.io)
+    REPO_FILTER := $(ORG_NAME)/$(REPO_NAME)[^[:space:]|\$$]*
+else
+    REPO_FILTER := $(DOCKER_REGISTRY)/$(ORG_NAME)/$(REPO_NAME)[^[:space:]|\$$]*
+endif
+
+REPO_EXPR := $$(docker inspect -f '{{range .RepoTags}}{{.}} {{end}}' $(IMAGE_ID) | grep -oh "$(REPO_FILTER)" | xargs)
 
 ifeq (buildtag,$(firstword $(MAKECMDGOALS)))
     BUILDTAG_ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
