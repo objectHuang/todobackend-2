@@ -4,11 +4,11 @@ node {
     try {
         stage ('Run unit/integration tests') {
             sh "make test"
-            sh "make clean"
         }
         
         stage ('Build application artifacts') {
-            sh "make build"  
+            sh "make build"
+            sh "make clean"
         }
         
         stage ('Create release environment and run accept test') {
