@@ -4,6 +4,7 @@ node {
     try {
         stage ('Run unit/integration tests') {
             sh "make test"
+            sh "make clean"
         }
         
         stage ('Build application artifacts') {
